@@ -31,24 +31,3 @@
                       (when (= (aref (intcode memory) 0) 19690720)
                         (return-from aoc2b (+ (* 100 noun) verb))))))
 
-(defun intcode (memory)
-  (loop :for ip := 0
-          :then (+ ip instruction-length)
-        :for opcode := (aref memory ip)
-        :for instruction-length := 4
-        :do (ecase opcode
-              (1 (let+ (((&array-elements (a (+ ip 1))
-                                          (b (+ ip 2))
-                                          (to (+ ip 3)))
-                         memory))
-                   (setf (aref memory to)
-                         (+ (aref memory a)
-                            (aref memory b)))))
-              (2 (let+ (((&array-elements (a (+ ip 1))
-                                          (b (+ ip 2))
-                                          (to (+ ip 3)))
-                         memory))
-                   (setf (aref memory to)
-                         (* (aref memory a)
-                            (aref memory b)))))
-              (99 (return-from intcode memory)))))

@@ -11,5 +11,6 @@
                "split-sequence")
   :serial t
   :components ((:file "base")
+               (:file "intcode")
                (:file "1")
                (:file "2")))

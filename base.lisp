@@ -6,6 +6,7 @@
         #:arrows
         #:cl-ppcre
         #:for
+        #:let-plus
         #:split-sequence)
   (:export #:array-flat-view
            #:defenum
