@@ -11,4 +11,5 @@
                "split-sequence")
   :serial t
   :components ((:file "base")
-               (:file "1")))
+               (:file "1")
+               (:file "2")))
