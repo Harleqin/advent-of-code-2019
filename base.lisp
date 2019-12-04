@@ -24,8 +24,9 @@
   (with-open-file (in filename)
     (loop :for line := (read-line in nil)
           :while line
-          :append (loop :for (i pos) := (multiple-value-list
-                                         (parse-integer line
+          :append (loop :for s := (substitute #\space #\, line)
+                        :for (i pos) := (multiple-value-list
+                                         (parse-integer s
                                                         :start (or pos 0)
                                                         :junk-allowed t))
                         :while i
