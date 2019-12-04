@@ -31,12 +31,4 @@
 (defun pw-candidate-b-p (i)
   (let ((digits (digits i)))
     (and (every #'<= digits (rest digits))
-         (member 2 (digit-runs digits)))))
-
-(defun digit-runs (ds)
-  (loop :with ht := (make-hash-table)
-        :for (d e) :on ds
-        :while e
-        :when (= d e)
-          :do (incf (gethash e ht 1))
-        :finally (return (hash-table-values ht))))
+         (member 2 (hash-table-values (frequencies digits))))))
