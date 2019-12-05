@@ -49,6 +49,40 @@
       (incf (gethash x fs 0)))
     fs))
 
+(defgeneric partition-by (f sequence &key test)
+  (:documentation "Applies F to each item in SEQUENCE, splitting it each time F
+  returns a new value.  Returns a list of sequences of the same type as
+  SEQUENCES."))
+
+(defmethod partition-by (f (sequence cons) &key (test #'eql))
+  (loop :with bag := (list (first sequence))
+        :with result := ()
+        :for x :in (rest sequence)
+        :for previous := (funcall f (first sequence)) :then current
+        :for current := (funcall f x)
+        :unless (funcall test previous current)
+          :do (push (reverse bag) result)
+              (setf bag ())
+        :do (push x bag)
+        :finally (push (reverse bag) result)
+                 (return (reverse result))))
+
+(defmethod partition-by (f (sequence vector) &key (test #'eql))
+  (loop :with start := 0
+        :with result := ()
+        :for i :from 1 :below (length sequence)
+        :for x := (aref sequence i)
+        :for previous := (funcall f (aref sequence 0)) :then current
+        :for current := (funcall f x)
+        :unless (funcall test previous current)
+          :do (push (subseq sequence start i) result)
+              (setf start i)
+        :finally (push (subseq sequence start) result)
+                 (return (reverse result))))
+
+(defgeneric group-by (f sequence &key (test #'eql))
+  )
+
 (defun factorize (n)
   (let ((factors ()))
     (loop :while (evenp n)

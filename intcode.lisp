@@ -26,6 +26,15 @@
         (* (aref memory a)
            (aref memory b))))
 
+(define-op 3 (to) memory
+  (princ "Input: ")
+  (finish-output)
+  (setf (aref memory to)
+        (parse-integer (read-line) :junk-allowed t)))
+
+(define-op 4 (from) memory
+  (format t "Output: ~a~%" (aref memory from)))
+
 (defun intcode (memory)
   (loop :for ip := 0
           :then (+ ip (aref *op-lengths* opcode))
