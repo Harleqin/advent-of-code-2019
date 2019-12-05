@@ -84,6 +84,16 @@
   (unless (zerop pred)
     (setf *ip+* jump)))
 
+(define-op 6 (pred jump)
+  (when (zerop pred)
+    (setf *ip+* jump)))
+
+(define-op 7 (a b to)
+  (setf to (if (< a b) 1 0)))
+
+(define-op 8 (a b to)
+  (setf to (if (= a b) 1 0)))
+
 (define-op 99 ()
   (setf *ip+* 'end))
 

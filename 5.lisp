@@ -10,5 +10,5 @@
 
 (in-package #:aoc-2019/5)
 
-(defun aoc5a (&optional (program (coerce (read-integers "5") 'vector)))
+(defun aoc5 (&optional (program (coerce (read-integers "5") 'vector)))
   (aoc-2019/intcode:intcode program))
