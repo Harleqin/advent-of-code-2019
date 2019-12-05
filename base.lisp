@@ -80,9 +80,6 @@
         :finally (push (subseq sequence start) result)
                  (return (reverse result))))
 
-(defgeneric group-by (f sequence &key (test #'eql))
-  )
-
 (defun factorize (n)
   (let ((factors ()))
     (loop :while (evenp n)
