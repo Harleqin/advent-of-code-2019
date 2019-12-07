@@ -4,9 +4,7 @@
   (:use #:cl
         #:alexandria
         #:arrows)
-  (:export #:intcode
-           #:*input*
-           #:*output*))
+  (:export #:intcode))
 
 (in-package #:aoc-2019/intcode)
 
@@ -14,18 +12,17 @@
 
 (defvar *ip+* nil)
 
-(defvar *input* nil)
+(defvar *interactivep* nil)
 
-(defvar *output* nil)
-
-(defmacro define-op (opcode posargs &body body)
+(defmacro define-op (opcode posargs (in out) &body body)
   (with-gensyms (ip
                  parameter-modes
                  memvar)
     `(setf (gethash ,opcode *ops*)
-           (lambda (,memvar ,ip ,parameter-modes)
-             ,(when (zerop (length posargs))
-                `(declare (ignore ,memvar ,parameter-modes)))
+           (lambda (,memvar ,ip ,parameter-modes ,in ,out)
+             (declare (ignorable ,in ,out)
+                      ,@(when (zerop (length posargs))
+                         `((ignore ,memvar ,parameter-modes))))
              (let ((*ip+* nil))
                (symbol-macrolet
                    (,@(loop :for posarg :in posargs
@@ -71,49 +68,62 @@
             (setf to (+ a b))
             4))))
 
-(define-op 1 (a b to)
+(define-op 1 (a b to) (in out)
   (setf to (+ a b)))
 
-(define-op 2 (a b to)
+(define-op 2 (a b to) (in out)
   (setf to (* a b)))
 
-(define-op 3 (to)
+(define-op 3 (to) (in out)
   (setf to
-        (if *input*
-            (pop *input*)
+        (if *interactivep*
             (progn
               (princ "Input: ")
               (finish-output)
-              (parse-integer (read-line) :junk-allowed t)))))
+              (parse-integer (read-line) :junk-allowed t))
+            (chanl:recv in))))
 
-(define-op 4 (from)
-  (push from *output*)
-  (format t "Output: ~a~%" from))
+(define-op 4 (from) (in out)
+  (if *interactivep*
+      (format t "Output: ~a~%" from)
+      (chanl:send out from)))
 
-(define-op 5 (pred jump)
+(define-op 5 (pred jump) (in out)
   (unless (zerop pred)
     (setf *ip+* jump)))
 
-(define-op 6 (pred jump)
+(define-op 6 (pred jump) (in out)
   (when (zerop pred)
     (setf *ip+* jump)))
 
-(define-op 7 (a b to)
+(define-op 7 (a b to) (in out)
   (setf to (if (< a b) 1 0)))
 
-(define-op 8 (a b to)
+(define-op 8 (a b to) (in out)
   (setf to (if (= a b) 1 0)))
 
-(define-op 99 ()
+(define-op 99 () (in out)
+  (unless *interactivep*
+    (chanl:send out :end))
   (setf *ip+* 'end))
 
-(defun intcode (memory)
-  (loop :for ip := 0
-          :then next-ip
-        :for (opcode parameter-modes) := (parse-instruction (aref memory ip))
-        :for next-ip := (funcall (gethash opcode *ops*) memory ip parameter-modes)
-        :when (eq next-ip 'end)
-          :do (return memory)))
+(defun intcode (memory &key ((:interactivep *interactivep*) t))
+  (let ((input-ch (make-instance 'chanl:bounded-channel
+                                   :size 2))
+        (output-ch (make-instance 'chanl:bounded-channel
+                                    :size 2)))
+    (chanl:pexec ()
+      (loop :for ip := 0
+              :then next-ip
+            :for (opcode parameter-modes) := (parse-instruction (aref memory ip))
+            :for next-ip := (funcall (gethash opcode *ops*)
+                                     memory
+                                     ip
+                                     parameter-modes
+                                     input-ch
+                                     output-ch)
+            :until (eq next-ip 'end)))
+    (list input-ch output-ch)))
 
 (defun parse-instruction (n)
   (multiple-value-bind (modes opcode) (floor n 100)

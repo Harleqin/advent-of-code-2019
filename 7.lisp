@@ -28,7 +28,9 @@
         :finally (return output)))
 
 (defun amplifier (program phase input)
-  (let ((*input* (list phase input))
-        (*output* nil))
-    (intcode program)
-    (pop *output*)))
+  (destructuring-bind (in out)
+      (intcode program :interactivep nil)
+    (chanl:send in phase)
+    (chanl:send in input)
+    (chanl:recv out)))
+

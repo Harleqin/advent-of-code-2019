@@ -5,6 +5,7 @@
   :license "public domain/CC0"
   :depends-on ("alexandria"
                "arrows"
+               "chanl"
                "cl-ppcre"
                "for"
                "let-plus"
