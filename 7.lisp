@@ -33,7 +33,7 @@
 
 (defun amplifier (program phase input)
   (destructuring-bind (in out)
-      (intcode program :interactivep nil)
+      (intcode program)
     (chanl:send in phase)
     (chanl:send in input)
     (chanl:recv out)))
@@ -44,8 +44,7 @@
 
 (defun run-amps-feedback (program phases)
   (let ((amps (loop :repeat 5
-                    :collect (intcode (copy-seq program)
-                                      :interactivep nil))))
+                    :collect (intcode (copy-seq program)))))
     (loop :for (in out) :in amps
           :for phase :across phases
           :do (chanl:send in phase))

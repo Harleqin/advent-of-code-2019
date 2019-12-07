@@ -108,35 +108,31 @@
     (chanl:send out :end))
   (setf *ip+* 'end))
 
-(defun intcode (memory &key
-                         ((:interactivep *interactivep*) t)
-                         (send-mem0-p nil))
+(defun intcode (memory)
   (let ((input-ch (make-instance 'chanl:bounded-channel
                                    :size 2))
         (output-ch (make-instance 'chanl:bounded-channel
                                     :size 2)))
     (chanl:pexec ()
-      (loop :for ip := 0
-              :then next-ip
-            :for (opcode parameter-modes) := (parse-instruction (aref memory ip))
-            :for next-ip := (funcall (gethash opcode *ops*)
-                                     memory
-                                     ip
-                                     parameter-modes
-                                     input-ch
-                                     output-ch)
-            :until (eq next-ip 'end)
-            :finally (when send-mem0-p
-                       (chanl:send output-ch (aref memory 0)))))
+      (intcode-core memory input-ch output-ch))
     (list input-ch output-ch)))
 
+(defun intcode-core (memory input-ch output-ch)
+  (loop :for ip := 0
+          :then next-ip
+        :for (opcode parameter-modes) := (parse-instruction (aref memory ip))
+        :for next-ip := (funcall (gethash opcode *ops*)
+                                 memory
+                                 ip
+                                 parameter-modes
+                                 input-ch
+                                 output-ch)
+        :until (eq next-ip 'end)
+        :finally (return (aref memory 0))))
+
 (defun intcode-single (memory)
-  (destructuring-bind (in out)
-      (aoc-2019/intcode:intcode memory
-                                :send-mem0-p t)
-    (declare (ignore in))
-    (chanl:recv out) ; skip :end
-    (chanl:recv out)))
+  (let ((*interactivep* t))
+    (intcode-core memory nil nil)))
 
 (defun parse-instruction (n)
   (multiple-value-bind (modes opcode) (floor n 100)
