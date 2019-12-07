@@ -4,13 +4,19 @@
   (:use #:cl
         #:alexandria
         #:arrows)
-  (:export #:intcode))
+  (:export #:intcode
+           #:*input*
+           #:*output*))
 
 (in-package #:aoc-2019/intcode)
 
 (defparameter *ops* (make-hash-table))
 
 (defvar *ip+* nil)
+
+(defvar *input* nil)
+
+(defvar *output* nil)
 
 (defmacro define-op (opcode posargs &body body)
   (with-gensyms (ip
@@ -72,12 +78,16 @@
   (setf to (* a b)))
 
 (define-op 3 (to)
-  (princ "Input: ")
-  (finish-output)
   (setf to
-        (parse-integer (read-line) :junk-allowed t)))
+        (if *input*
+            (pop *input*)
+            (progn
+              (princ "Input: ")
+              (finish-output)
+              (parse-integer (read-line) :junk-allowed t)))))
 
 (define-op 4 (from)
+  (push from *output*)
   (format t "Output: ~a~%" from))
 
 (define-op 5 (pred jump)
