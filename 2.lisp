@@ -12,9 +12,9 @@
 (defun aoc2a (&optional (ns (read-integers "2")))
   (setf (nth 1 ns) 12
         (nth 2 ns) 2)
-  (-> (intcode (coerce ns 'vector))
-      (aref 0)))
+  (aoc-2019/intcode:intcode-single (coerce ns 'vector)))
 
+#+simpl-impl
 (defun intcode-l (ns)
   (loop :for (op a b to) :on ns :by #'cddddr
         :do (ecase op
@@ -28,6 +28,7 @@
                   :for memory := (copy-array ns)
                   :do (setf (aref memory 1) noun
                             (aref memory 2) verb)
-                      (when (= (aref (intcode memory) 0) 19690720)
+                      (when (= (aoc-2019/intcode:intcode-single memory)
+                               19690720)
                         (return-from aoc2b (+ (* 100 noun) verb))))))
 

@@ -4,7 +4,8 @@
   (:use #:cl
         #:alexandria
         #:arrows)
-  (:export #:intcode))
+  (:export #:intcode
+           #:intcode-single))
 
 (in-package #:aoc-2019/intcode)
 
@@ -107,7 +108,9 @@
     (chanl:send out :end))
   (setf *ip+* 'end))
 
-(defun intcode (memory &key ((:interactivep *interactivep*) t))
+(defun intcode (memory &key
+                         ((:interactivep *interactivep*) t)
+                         (send-mem0-p nil))
   (let ((input-ch (make-instance 'chanl:bounded-channel
                                    :size 2))
         (output-ch (make-instance 'chanl:bounded-channel
@@ -122,8 +125,18 @@
                                      parameter-modes
                                      input-ch
                                      output-ch)
-            :until (eq next-ip 'end)))
+            :until (eq next-ip 'end)
+            :finally (when send-mem0-p
+                       (chanl:send output-ch (aref memory 0)))))
     (list input-ch output-ch)))
+
+(defun intcode-single (memory)
+  (destructuring-bind (in out)
+      (aoc-2019/intcode:intcode memory
+                                :send-mem0-p t)
+    (declare (ignore in))
+    (chanl:recv out) ; skip :end
+    (chanl:recv out)))
 
 (defun parse-instruction (n)
   (multiple-value-bind (modes opcode) (floor n 100)
