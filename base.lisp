@@ -15,6 +15,7 @@
            #:factorize
            #:frequencies
            #:read-integers
+           #:read-matrix
            #:sort-by
            #:strcat))
 
@@ -31,6 +32,21 @@
                                                         :junk-allowed t))
                         :while i
                         :collect i))))
+
+(defun read-matrix (filename)
+  (let* ((lines (with-open-file (in filename)
+                  (loop :for line := (read-line in nil)
+                        :while line
+                        :collect line)))
+         (width (length (first lines)))
+         (height (length lines))
+         (array (make-array (list height width))))
+    (loop :for y :below height
+          :for line :in lines
+          :do (loop :for x :below width
+                    :for char :across line
+                    :do (setf (aref array y x) char)))
+    array))
 
 (defmacro dovector ((var vector &optional return) &body body)
   `(loop :for ,var :across ,vector
