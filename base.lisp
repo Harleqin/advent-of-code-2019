@@ -14,6 +14,7 @@
            #:dovector
            #:factorize
            #:frequencies
+           #:print-matrix
            #:read-integers
            #:read-matrix
            #:sort-by
@@ -47,6 +48,12 @@
                     :for char :across line
                     :do (setf (aref array y x) char)))
     array))
+
+(defun print-matrix (matrix lookup-alist)
+  (dotimes (y (array-dimension matrix 0))
+    (dotimes (x (array-dimension matrix 1))
+      (princ (cdr (assoc (aref matrix y x) lookup-alist))))
+    (terpri)))
 
 (defmacro dovector ((var vector &optional return) &body body)
   `(loop :for ,var :across ,vector
