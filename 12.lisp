@@ -56,10 +56,16 @@
 
 (defun aoc12b (&optional
                  (coords (read-coords "12")))
-  (let ((states (make-hash-table :test #'equalp)))
-    (loop :for moons := (mapcar (lambda (pos)
-                                  (cons pos (vector 0 0 0)))
-                                coords)
+  (let* ((moons0 (mapcar (lambda (pos)
+                           (cons pos (vector 0 0 0)))
+                         coords))
+         (x-state0 (state moons0 0))
+         (y-state0 (state moons0 1))
+         (z-state0 (state moons0 2))
+         x-period
+         y-period
+         z-period)
+    (loop :for moons := moons0
             :then new-moons
           :for vs := (loop :for moon :in moons
                            :for (pos . v) := moon
@@ -69,6 +75,20 @@
           :for new-moons := (loop :for pos :in (mapcar #'car moons)
                                   :for v :in vs
                                   :collect (cons (vector+ pos v) v))
-          :until (gethash moons states)
-          :do (setf (gethash moons states) t)
-          :count t)))
+          :for x-state := (state new-moons 0)
+          :for y-state := (state new-moons 1)
+          :for z-state := (state new-moons 2)
+          :count t :into steps
+          :when (and (null x-period) (equalp x-state x-state0))
+            :do (setf x-period steps)
+          :when (and (null y-period) (equalp y-state y-state0))
+            :do (setf y-period steps)
+          :when (and (null z-period) (equalp z-state z-state0))
+            :do (setf z-period steps)
+          :until (and x-period y-period z-period)
+          :finally (return (lcm x-period y-period z-period)))))
+
+(defun state (moons axis)
+  (loop :for moon :in moons
+        :collect (cons (aref (car moon) axis)
+                       (aref (cdr moon) axis))))
