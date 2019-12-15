@@ -9,6 +9,7 @@
                "cl-ppcre"
                "for"
                "let-plus"
+               "minheap"
                "split-sequence")
   :serial t
   :components ((:file "base")

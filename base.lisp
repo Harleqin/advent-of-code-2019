@@ -18,7 +18,10 @@
            #:read-integers
            #:read-matrix
            #:sort-by
-           #:strcat))
+           #:strcat)
+  (:export #:unique-heap
+           #:heap-upsert
+           #:heap-pop))
 
 (in-package #:aoc-2019)
 
@@ -161,3 +164,31 @@ test of the last arglist is ignored."
   `(let ((,var ,form))
      ,@body
      ,var))
+
+;; A wrapper for a heap that keeps track of already present values.
+
+(defstruct unique-heap
+  (heap (make-instance 'pairing-heap:pairing-heap))
+  (nodes (make-hash-table :test #'equalp)))
+
+(defun heap-upsert (uheap key value)
+  "Inserts VALUE with priority given by KEY into the UHEAP.  If VALUE is already
+in UHEAP, its existing key is instead decreased to KEY if that is lower.
+Returns two values: whether an update took place (insert or key-decrease), and
+the effective key afterwards (the inserted, decreased or existing key)."
+  (let+ (((&structure unique-heap- heap nodes) uheap))
+    (if-let ((node (gethash value nodes)))
+      (if (< key (pairing-heap::node-key node))
+          (progn (pairing-heap:decrease-key heap node key)
+                 (values t key))
+          (values nil (pairing-heap::node-key node)))
+      (progn (setf (gethash value nodes)
+                   (pairing-heap:insert heap key value))
+             (values t key)))))
+
+(defun heap-pop (uheap)
+  (let+ (((&structure unique-heap- heap nodes) uheap))
+    (unless (pairing-heap:empty-p heap)
+      (let ((value (pairing-heap:extract-min heap)))
+        (remhash value nodes)
+        value))))
