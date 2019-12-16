@@ -39,6 +39,22 @@
                                          4))
                     :sum (* p s) :into sum
                     :finally (setf (aref output o)
-                                   (abs (rem sum 10)))))
+                                   (rem (abs sum) 10))))
     output))
 
+(defun aoc16b (&optional (raw-signal (read-signal "16"))
+               &aux (whole-signal (repeat 10000 (parse-signal raw-signal))))
+  (let* ((offset (parse-integer (subseq raw-signal 0 7)))
+         ;; The pattern is always 0 below the currently calculated index.
+         ;; Starting at the middle of the signal, it is always 1 above that.  If
+         ;; the offset is higher than the middle, we can just sum from the end
+         ;; and ignore everytihng before the offset.
+         (signal (reverse (subseq whole-signal offset))))
+    (assert (>= offset (/ (length whole-signal) 2)))
+    (loop :repeat 100
+          :do (loop :for i :below (length signal)
+                    :for x :across signal
+                    :sum x :into sum
+                    :do (setf (aref signal i) (rem (abs sum) 10)))
+              (princ #\.))
+    (map nil #'princ (subseq (reverse signal) 0 8))))
