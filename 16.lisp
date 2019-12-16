@@ -28,22 +28,17 @@
   signal)
 
 (defun fft-phase (signal)
-  (map-into (make-array (length signal))
-            (lambda (i)
-              (->> signal
-                   (map 'vector #'*
-                        (make-pattern i (length signal)))
-                   (reduce #'+)
-                   (->* (rem 10))
-                   abs))
-            (iota (length signal))))
+  (let ((output (make-array (length signal)))
+        (pattern #(0 1 0 -1)))
+    (loop :for o :upfrom 0 :below (length signal)
+          :for count :upfrom 1
+          :do (loop :for s :across signal
+                    :for i :upfrom 0
+                    :for p := (aref pattern
+                                    (mod (floor (1+ i) count)
+                                         4))
+                    :sum (* p s) :into sum
+                    :finally (setf (aref output o)
+                                   (abs (rem sum 10)))))
+    output))
 
-(defun make-pattern (count length)
-  (let ((pattern (make-array length))
-        (base #(0 1 0 -1)))
-    (loop :for p :upfrom -1 :below length
-          :for i :upfrom 0
-          :unless (minusp p)
-            :do (setf (aref pattern p)
-                      (aref base (mod (floor i (1+ count)) 4))))
-    pattern))
