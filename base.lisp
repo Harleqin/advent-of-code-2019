@@ -17,6 +17,7 @@
            #:print-matrix
            #:read-integers
            #:read-matrix
+           #:repeat
            #:sort-by
            #:strcat)
   (:export #:unique-heap
@@ -192,3 +193,15 @@ the effective key afterwards (the inserted, decreased or existing key)."
       (let ((value (pairing-heap:extract-min heap)))
         (remhash value nodes)
         value))))
+
+;;
+
+(defgeneric repeat (n sequence))
+
+(defmethod repeat (n (sequence vector))
+  (let ((out (make-array (* n (length sequence)))))
+    (loop :for start :below (length out) :by (length sequence)
+          :do (loop :for i :below (length sequence)
+                    :do (setf (aref out (+ start i))
+                              (aref sequence i))))
+    out))
