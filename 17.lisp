@@ -20,7 +20,8 @@
                    :until (eq output :end)
                    :do (princ (code-char output) v))))
          (map (read-map view)))
-    (alignment map)))
+    (values map
+            (alignment map))))
 
 (defun read-map (view)
   (read-matrix (with-input-from-string (v view)
@@ -38,3 +39,53 @@
                                 (aref map y (1- x))
                                 (aref map y (1+ x)))
                      :sum (* y x))))
+
+(defun aoc17b (&optional (program (coerce (read-integers "17")
+                                          'vector))
+               &aux (map (aoc17a program)))
+  (setf (aref program 0) 2)
+  (let ((path (trace-path map)))
+    path))
+
+(defun trace-path (map)
+  (loop :for pos := (2d-pos-if (lambda (c)
+                                 (member c '(#\^ \> #\< #\v)))
+                               map)
+          :then next-pos
+        :for dir := (ecase (map-ref map pos)
+                      (#\^ #(0 -1))
+                      (#\> #(1 0))
+                      (#\v #(0 1))
+                      (#\< #(-1 0)))
+          :then next-dir
+        :for (next-pos next-dir moves) := (find-path map pos dir)
+        :while next-pos
+        :append moves))
+
+(defun find-path (map pos dir)
+  (loop :for (moves . d) :in (list (cons '(1) dir)
+                                  (cons '(#\R 1) (turn-right/screen dir))
+                                  (cons '(#\L 1) (turn-left/screen dir)))
+        :for p := (map 'vector #'+ pos d)
+        :when (and (array-in-bounds-p map (aref p 1) (aref p 0))
+                   (char= #\# (map-ref map p)))
+          :do (return (list p d moves))))
+
+(defun turn-left/screen (dir)
+  (v*m dir #2a((0 -1)
+               (1 0))))
+
+(defun turn-right/screen (dir)
+  (v*m dir #2a((0 1)
+               (-1 0))))
+
+(defun v*m (vector matrix)
+  (destructuring-bind (h w) (array-dimensions matrix)
+    (assert (= h (length vector)))
+    (let ((r (make-array w)))
+      (loop :for i :below w
+            :do (setf (aref r i)
+                      (loop :for y :below h
+                            :sum (* (aref vector y)
+                                    (aref matrix y i)))))
+      r)))

@@ -8,12 +8,14 @@
         #:for
         #:let-plus
         #:split-sequence)
-  (:export #:array-flat-view
+  (:export #:2d-pos-if
+           #:array-flat-view
            #:defenum
            #:doto
            #:dovector
            #:factorize
            #:frequencies
+           #:map-ref
            #:print-matrix
            #:read-integers
            #:read-matrix
@@ -201,3 +203,14 @@ the effective key afterwards (the inserted, decreased or existing key)."
                     :do (setf (aref out (+ start i))
                               (aref sequence i))))
     out))
+
+(defun 2d-pos-if (f map)
+  (loop :for y :below (array-dimension map 0)
+        :do (loop :for x :below (array-dimension map 1)
+                  :for e := (aref map y x)
+                  :when (funcall f e)
+                    :do (return-from 2d-pos-if
+                          (values (vector x y) e)))))
+
+(defmacro map-ref (map pos)
+  `(aref ,map (aref ,pos 1) (aref ,pos 0)))
