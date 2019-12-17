@@ -38,12 +38,8 @@
                         :while i
                         :collect i))))
 
-(defun read-matrix (filename)
-  (let* ((lines (with-open-file (in filename)
-                  (loop :for line := (read-line in nil)
-                        :while line
-                        :collect line)))
-         (width (length (first lines)))
+(defun read-matrix (lines)
+  (let* ((width (length (first lines)))
          (height (length lines))
          (array (make-array (list height width))))
     (loop :for y :below height
