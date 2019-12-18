@@ -8,7 +8,8 @@
         #:for
         #:let-plus
         #:split-sequence)
-  (:export #:2d-pos-if
+  (:export #:2d-pos
+           #:2d-pos-if
            #:array-flat-view
            #:defenum
            #:doto
@@ -18,6 +19,7 @@
            #:map-ref
            #:print-matrix
            #:read-integers
+           #:read-map
            #:read-matrix
            #:repeat
            #:sort-by
@@ -50,6 +52,12 @@
                     :for char :across line
                     :do (setf (aref array y x) char)))
     array))
+
+(defun read-map (view)
+  (read-matrix (with-input-from-string (v view)
+                 (loop :for line := (read-line v nil)
+                       :while (some-> line length plusp)
+                       :collect line))))
 
 (defun print-matrix (matrix &optional lookup-alist)
   (flet ((lookup (e)
@@ -203,6 +211,14 @@ the effective key afterwards (the inserted, decreased or existing key)."
                     :do (setf (aref out (+ start i))
                               (aref sequence i))))
     out))
+
+(defun 2d-pos (item map &key (test #'eql))
+  (loop :for y :below (array-dimension map 0)
+        :do (loop :for x :below (array-dimension map 1)
+                  :for e := (aref map y x)
+                  :when (funcall test item e)
+                    :do (return-from 2d-pos
+                          (values (vector x y) e)))))
 
 (defun 2d-pos-if (f map)
   (loop :for y :below (array-dimension map 0)
