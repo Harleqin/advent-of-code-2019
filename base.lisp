@@ -14,6 +14,7 @@
            #:defenum
            #:doto
            #:dovector
+           #:extrapolate
            #:factorize
            #:frequencies
            #:map-ref
@@ -230,3 +231,6 @@ the effective key afterwards (the inserted, decreased or existing key)."
 
 (defmacro map-ref (map pos)
   `(aref ,map (aref ,pos 1) (aref ,pos 0)))
+
+(defun extrapolate (v a b)
+  (+ (* (- 1 v) a) (* v b)))
