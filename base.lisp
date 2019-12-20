@@ -26,6 +26,7 @@
            #:sort-by
            #:strcat)
   (:export #:unique-heap
+           #:make-unique-heap
            #:heap-upsert
            #:heap-pop))
 
