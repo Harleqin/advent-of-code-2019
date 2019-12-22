@@ -24,6 +24,7 @@
            #:read-matrix
            #:repeat
            #:sort-by
+           #:string-lines
            #:strcat)
   (:export #:unique-heap
            #:make-unique-heap
@@ -56,10 +57,13 @@
     array))
 
 (defun read-map (view)
-  (read-matrix (with-input-from-string (v view)
-                 (loop :for line := (read-line v nil)
-                       :while (some-> line length plusp)
-                       :collect line))))
+  (read-matrix (string-lines view)))
+
+(defun string-lines (string)
+  (with-input-from-string (v string)
+    (loop :for line := (read-line v nil)
+          :while (some-> line length plusp)
+          :collect line)))
 
 (defun print-matrix (matrix &optional lookup-alist)
   (flet ((lookup (e)
