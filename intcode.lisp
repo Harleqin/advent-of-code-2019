@@ -5,6 +5,7 @@
         #:alexandria
         #:arrows)
   (:export #:intcode
+           #:intcode-core
            #:intcode-single))
 
 (in-package #:aoc-2019/intcode)
@@ -58,19 +59,10 @@
   (setf to (* a b)))
 
 (define-op 3 (to) (in out)
-  (when (some-> *ip+* (= 11)) (break))
-  (setf to
-        (if *interactivep*
-            (progn
-              (princ "Input: ")
-              (finish-output)
-              (parse-integer (read-line) :junk-allowed t))
-            (chanl:recv in))))
+  (setf to (funcall in)))
 
 (define-op 4 (from) (in out)
-  (if *interactivep*
-      (format t "Output: ~a~%" from)
-      (chanl:send out from)))
+  (funcall out from))
 
 (define-op 5 (pred jump) (in out)
   (unless (zerop pred)
@@ -90,20 +82,26 @@
   (incf *rb* from))
 
 (define-op 99 () (in out)
-  (unless *interactivep*
-    (chanl:send out :end))
+  (funcall out :end)
   (setf *ip+* 'end))
 
 (defun intcode (program)
   (let ((input-ch (make-instance 'chanl:bounded-channel
-                                   :size 2))
+                                 :size 2))
         (output-ch (make-instance 'chanl:bounded-channel
-                                    :size 2)))
+                                  :size 2)))
     (chanl:pexec ()
-      (intcode-core program input-ch output-ch))
+      (intcode-core program
+                    (lambda ()
+                      (chanl:recv input-ch))
+                    (lambda (n)
+                      (chanl:send output-ch n))))
     (list input-ch output-ch)))
 
-(defun intcode-core (program input-ch output-ch)
+(defun intcode-core (program input-fn output-fn)
+  "Runs the given intcode program.  INPUT-FN is a function of zero arguments
+that returns a single integer.  OUTPUT-FN is a function of one argument that
+returns nothing."
   (loop :with memory := (vector->hashtable program)
         :for ip := 0
           :then next-ip
@@ -116,8 +114,8 @@
                                            ip
                                            relative-base
                                            parameter-modes
-                                           input-ch
-                                           output-ch)
+                                           input-fn
+                                           output-fn)
         :until (eq next-ip 'end)
         :finally (return (gethash 0 memory))))
 
@@ -127,8 +125,13 @@
       (setf (gethash i ht) (list (aref v i))))))
 
 (defun intcode-single (program)
-  (let ((*interactivep* t))
-    (intcode-core program nil nil)))
+  (intcode-core program
+                (lambda ()
+                  (princ "Input: ")
+                  (finish-output)
+                  (parse-integer (read-line) :junk-allowed t))
+                (lambda (n)
+                  (format t "Output: ~a~%" n))))
 
 (defun parse-instruction (n)
   (multiple-value-bind (modes opcode) (floor n 100)

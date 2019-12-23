@@ -9,6 +9,7 @@
                "cl-ppcre"
                "for"
                "let-plus"
+               "local-time"
                "minheap"
                "split-sequence")
   :serial t
@@ -35,4 +36,5 @@
                (:file "19")
                (:file "20")
                (:file "21")
-               (:file "22")))
+               (:file "22")
+               (:file "23")))
