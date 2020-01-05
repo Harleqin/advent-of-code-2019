@@ -17,6 +17,7 @@
            #:extrapolate
            #:factorize
            #:frequencies
+           #:hashtable->matrix
            #:map-ref
            #:print-matrix
            #:read-integers
@@ -76,6 +77,29 @@
       (dotimes (x (array-dimension matrix 1))
         (princ (lookup (aref matrix y x))))
       (terpri))))
+
+(defun hashtable->matrix (ht &key default-element)
+  "Transform a hashtable that has #(x y) vectors as keys into a 2-dimensional
+array."
+  (let+ (((&values min-x max-x min-y max-y)
+          (loop :for k :being :the :hash-keys :of ht
+                :for x := (aref k 0)
+                :for y := (aref k 1)
+                :minimize x :into min-x
+                :maximize x :into max-x
+                :minimize y :into min-y
+                :maximize y :into max-y
+                :finally (return (values min-x max-x min-y max-y))))
+         (width (1+ (- max-x min-x)))
+         (height (1+ (- max-y min-y)))
+         (matrix (make-array (list height width)
+                             :initial-element default-element)))
+    (loop :for k :being :the :hash-keys :of ht
+            :using (:hash-value v)
+          :for x := (- (aref k 0) min-x)
+          :for y := (- (aref k 1) min-y)
+          :do (setf (aref matrix y x) v))
+    (values matrix min-x min-y)))
 
 (defmacro dovector ((var vector &optional return) &body body)
   `(loop :for ,var :across ,vector

@@ -14,50 +14,93 @@
 (defun aoc15a (&optional (program (coerce (read-integers "15")
                                           'vector)))
   (let ((droid (aoc-2019/intcode:intcode program))
-        (map (make-hash-table :test #'equalp))
-        (open-ends (all-dirs))
-        (target nil))
-    (loop :for pos := #(0 0) :then next-pos
-          :for dir := (move-dir map pos (first open-ends))
-          :for try-pos := (map 'vector #'+ pos dir)
-          :for status := (progn (chanl:send (first droid)
-                                            (eswitch (dir :test #'equalp)
-                                              (+n+ 1)
-                                              (+s+ 2)
-                                              (+e+ 3)
-                                              (+w+ 4)))
-                                (chanl:recv (second droid)))
-          :for next-pos := (if (= status +wall+)
-                               pos
-                               try-pos)
-          :do (ensure-gethash try-pos map status)
-              (cond ((= status +wall+)
-                     (removef open-ends try-pos :count 1))
-                    ((equalp try-pos (first open-ends))
-                     (pop open-ends)
-                     (dolist (d (all-dirs))
-                       (let ((p (map 'vector #'+ try-pos d)))
-                         (unless (gethash p map)
-                           (push p open-ends))))))
-          :when (= status +target+)
-            :do (setf target try-pos)
-          :until (endp open-ends))
-    (length (shortest-path map #(0 0) target))))
+        (map (make-hash-table :test #'equalp)))
+    (setf (gethash #(0 0) map) +open+)
+    (loop :for level :upfrom 0
+          :for (actives pos foundp) := (list (list #(0 0))
+                                             #(0 0)
+                                             nil)
+            :then (expand actives map droid pos)
+          :when foundp
+            :return level)))
 
-(defun move-dir (map from to)
-  (or (first (member (map 'vector #'- to from)
-                     (all-dirs)
-                     :test #'equalp))
-      (let ((last-known (if (gethash to map)
-                            to
-                            (loop :for d :in (all-dirs)
-                                  :for p := (map 'vector #'+ to d)
-                                  :for s := (gethash p map)
-                                    :thereis (and (member s
-                                                          (list +open+
-                                                                +target+))
-                                                  p)))))
-        (first (shortest-path map from last-known)))))
+(defun aoc15b (&optional (program (coerce (read-integers "15")
+                                          'vector)))
+  (let+ ((droid (aoc-2019/intcode:intcode program))
+         (map-ht (alist-hash-table (list (cons #(0 0) +open+))
+                                   :test #'equalp))
+         (oxsys
+          (loop :for level :upfrom 0
+                :for (actives pos found-oxsys) := (list (list #(0 0))
+                                                        #(0 0)
+                                                        nil)
+                  :then (expand actives map-ht droid pos)
+                :for oxsys := (or oxsys found-oxsys)
+                :while actives
+                :finally (return oxsys)))
+         ((&values map min-x min-y)
+          (hashtable->matrix map-ht :default-element 0)))
+    (loop :for level :upfrom 0
+          :for actives := (list (map 'vector #'-
+                                     oxsys
+                                     (vector min-x min-y)))
+            :then (loop :for active :in actives
+                        :append (loop :for d :in (all-dirs)
+                                      :for n := (map 'vector #'+ active d)
+                                      :for s := (screen-ref map n)
+                                      :when (= s +open+)
+                                        :do (setf (screen-ref map n) +target+)
+                                        :and :collect n))
+          :while actives
+          :finally (return (1- level)))))
+
+(defmacro screen-ref (screen pos)
+  `(apply #'aref
+          ,screen
+          (reverse (coerce ,pos 'list))))
+
+(defun expand (actives map droid pos)
+  (loop :with found-target := nil
+        :for current-pos := pos :then active
+        :for active :in actives
+        :do (move-path droid map current-pos active)
+        :append (loop :for d :in (all-dirs)
+                      :for n := (map 'vector #'+ active d)
+                      :for known-status := (gethash n map)
+                      :for new-status := (unless known-status
+                                           (probe droid d))
+                      :when new-status
+                        :do (setf (gethash n map) new-status)
+                            (when (= new-status +target+)
+                              (setf found-target n))
+                        :and
+                          :when (= new-status +open+)
+                            :collect n)
+          :into new-actives
+        :finally (return (list new-actives active found-target))))
+
+(defun move-path (droid map from to)
+  (dolist (dir (shortest-path map from to))
+    (let ((status (move droid dir)))
+      (assert (= status +open+)
+              ()
+              "Should be 1 (+open+), but was ~a."
+              status))))
+
+(defun probe (droid dir)
+  (let ((status (move droid dir)))
+    (unless (= status +wall+)
+      (move droid (map 'vector #'- dir)))
+    status))
+
+(defun move (droid dir)
+  (chanl:send (first droid)
+              (eswitch (dir :test #'equalp)
+                (+n+ 1)
+                (+s+ 2)
+                (+e+ 3)
+                (+w+ 4)))
+  (chanl:recv (second droid)))
 
 (defun shortest-path (map from to)
   (let ((loose-ends (make-instance 'unique-heap))
@@ -81,7 +124,8 @@
                               (when betterp
                                 (setf (gethash neighbour directions) dir)))
                       :when (equalp neighbour to)
-                        :do (return (trace-path directions neighbour)))
+                        :do (return-from shortest-path 
+                              (trace-path directions neighbour)))
                 (setf (gethash current done) t)))))
 
 (defun manhattan-distance (a b)
@@ -98,8 +142,9 @@
 
 (defun trace-path (directions to)
   (reverse (loop :for x := to :then prev
-                 :for dir := (gethash to directions)
-                 :for prev := (some->> dir (map 'vector #'- to))
+                 :for dir := (gethash x directions)
+                 :for prev := (some->> dir
+                                       (map 'vector #'- x))
                  :while prev
                  :collect dir)))
 
