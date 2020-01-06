@@ -11,10 +11,25 @@
 
 (in-package #:aoc-2019/22)
 
+(defstruct (stack (:constructor make-stack (length &key zero delta)))
+  length
+  (zero 0)
+  (delta 1))
+
 (defun aoc22a ()
-  (position 2019
-            (shuffle-cards (coerce (iota 10007) 'vector)
-                           (read-file-into-string "22"))))
+  (card-position 2019
+                 (shuffle-cards (make-stack 10007)
+                                (read-file-into-string "22"))))
+
+(defun card-position (card stack)
+  (loop :for n :from (stack-zero stack) :by (stack-delta stack)
+        :for i :upfrom 0
+        :when (= n card)
+          :do (return i)))
+
+(defun nth-card (index stack)
+  (+ (stack-zero stack)
+     (* index (stack-delta stack))))
 
 (defun shuffle-cards (stack text)
   (reduce #'shuffle-step
@@ -37,7 +52,10 @@
 
 (defun shuffle-step (stack step)
   (ccase (first step)
-    (:deal-into-new-stack (reverse stack))
+    (:deal-into-new-stack
+     (make-stack (stack-length stack)
+                 :zero (nth-card (1- (stack-length stack)) stack)
+                 :delta (- (stack-delta stack))))
     (:cut (let* ((n (second step))
                  (i (if (minusp n)
                         (+ (length stack) n)
@@ -54,30 +72,3 @@
              :do (setf (aref new i) card))
        new))))
 
-(defun inverse-step (index length step)
-  (ccase (first step)
-    (:deal-into-new-stack (- length index 1))
-    (:cut (let* ((n (second step))
-                 (i (if (minusp n)
-                        (+ length n)
-                        n)))
-            (mod (+ index i) length)))
-    (:deal-with-increment
-     (let* ((n (second step))
-            (s (mod length n))
-            (r (mod (* s index -1) n))
-            (x (floor index n)))
-       (+ (* r (floor length n))
-          x
-          (if (plusp r) s 0))))))
-
-(defun aoc22b (&optional
-                 (length 119315717514047)
-                 (isteps (reverse (parse-steps (read-file-into-string "22")))))
-  (inverse-steps length isteps 2020))
-
-(defun inverse-steps (length isteps x)
-  (reduce (lambda (i step)
-            (inverse-step i length step))
-          isteps
-          :initial-value x))
