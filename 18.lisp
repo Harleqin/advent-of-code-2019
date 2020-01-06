@@ -16,11 +16,19 @@
                  (map (read-map raw-map))
                  (key-count (count-if #'lower-case-p (array-flat-view map))))
   ;; A cpos is a complex position: a cons of the actual position vector and the
-  ;; key set represented as a bit field (integer).  We can then just use
-  ;; Dujkstra.
-  (loop :with done := (make-hash-table :test #'equalp)
-        :for dist :upfrom 0
-        :for actives := (list (cons (2d-pos #\@ map) 0))
+  ;; key set represented as a bit field (integer).  We can then use an ordinary
+  ;; shortest-path algorithm.
+  (let ((start-cpos (cons (2d-pos #\@ map) 0))
+        (loose-ends (make-unique-heap))
+        (lengths (make-hash-table :test #'equalp))
+        (directions (make-hash-table :test #'equalp))
+        (done (make-hash-table :test #'equalp)))
+    (setf (gethash start-cpos lengths) 0)
+    (flet ((heuristic (cpos)
+             (+ (* 100 (logcount (cdr cpos)))
+                ())))))
+  (loop :for dist :upfrom 0
+        :for actives := (list )
           :then (mapcan (lambda (cpos)
                           (->> (free-neighbours cpos map)
                                (remove-if (lambda (cp)
@@ -29,7 +37,7 @@
         :do (dolist (a actives)
               (setf (gethash a done) dist))
         :until (loop :for (&ign . key-set) :in actives
-                     :thereis (= key-set (1- (expt 2 key-count))))
+                       :thereis (= key-set (1- (expt 2 key-count))))
         :finally (return dist)))
 
 (defun free-neighbours (cpos map)
